@@ -4,7 +4,7 @@ import { getUserProfile } from '@/services/server/userService';
 
 export async function GET(request, { params }) {
   try {
-    const userId = params.id;
+    const userId = await params.id;
     
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });

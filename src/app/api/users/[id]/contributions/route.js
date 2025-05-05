@@ -1,20 +1,22 @@
-// /app/api/users/[id]/contributions/route.js
+// /api/users/[id]/contributions/route.js
 import { NextResponse } from 'next/server';
 import { getUserContributions } from '@/services/server/userService';
 
 export async function GET(request, { params }) {
   try {
-    const userId = params.id;
+    // This is the correct way to await params in Next.js 13+
+    const userId = params?.id ? params.id : null;
     
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-    
-    // Get query parameters
+    // Get query parameters properly
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limitParam = searchParams.get('limit');
+    // Parse to number with fallback
+    const limit = limitParam ? parseInt(limitParam, 10) : 50;
     
-    const contributions = await getUserContributions(userId, limit);
+    // Validate to ensure it's a valid number
+    const validLimit = isNaN(limit) ? 50 : limit;
+    
+    const contributions = await getUserContributions(userId, validLimit);
     
     return NextResponse.json(contributions);
   } catch (error) {

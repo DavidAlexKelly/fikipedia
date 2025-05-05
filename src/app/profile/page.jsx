@@ -23,8 +23,29 @@ export default async function ProfilePage({ params, searchParams }) {
   
   // Fetch user data server-side
   const userId = session.user.id;
-  const userProfile = await getUserProfile(userId);
-  const contributions = await getUserContributions(userId, 20);
+  let userProfile = await getUserProfile(userId);
+  
+  // If profile doesn't exist, use basic data from session
+  if (!userProfile) {
+    userProfile = {
+      id: userId,
+      displayName: session.user.name,
+      email: session.user.email,
+      photoURL: session.user.image,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Optionally, you could create the user profile here
+    // await createUserProfile(userProfile);
+  }
+  
+  // Use empty array for contributions if fetch fails
+  let contributions = [];
+  try {
+    contributions = await getUserContributions(userId, 20);
+  } catch (error) {
+    console.error("Error fetching contributions:", error);
+  }
   
   // Pass data to client component
   return <ProfileClientView 
