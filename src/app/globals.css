@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Additional global styles */
+body {
+  @apply bg-gray-100;
+}
+
+/* Wikipedia-like styling */
+.internal-link {
+  @apply text-blue-600 hover:underline;
+}
+
+.external-link {
+  @apply text-blue-600 hover:underline;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Wiki markup editor styling */
+.wiki-editor {
+  font-family: monospace;
+}
+
+/* Table of contents styling */
+.toc a:hover {
+  text-decoration: underline;
+}
