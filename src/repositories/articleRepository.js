@@ -1,7 +1,8 @@
 // src/repositories/articleRepository.js
 import { BaseRepository } from './baseRepository';
-import { normalizeString, serializeArticle, serializeArticles } from '@/lib/serializers';
 import { adminDb } from '@/lib/firebase/admin';
+import { normalizeString, serializeArticle, serializeArticles } from '@/lib/serializers';
+import { ValidationError, NotFoundError } from '@/lib/errors/appErrors';
 
 export class ArticleRepository extends BaseRepository {
   constructor() {
@@ -30,13 +31,13 @@ export class ArticleRepository extends BaseRepository {
   async create(articleData, userId) {
     try {
       if (!articleData?.title || !userId) {
-        throw new Error("Missing required information");
+        throw new ValidationError("Missing required information");
       }
 
       // Check if article with this title already exists
       const existingArticle = await this.findByTitle(articleData.title);
       if (existingArticle) {
-        throw new Error("An article with this title already exists");
+        throw new ValidationError("An article with this title already exists");
       }
 
       const batch = adminDb.batch();
@@ -102,7 +103,7 @@ export class ArticleRepository extends BaseRepository {
   async update(articleId, updates, userId, summary) {
     try {
       if (!articleId || !userId || !updates) {
-        throw new Error("Missing required information");
+        throw new ValidationError("Missing required information");
       }
       
       // Get the article
@@ -110,7 +111,7 @@ export class ArticleRepository extends BaseRepository {
       const articleSnap = await articleRef.get();
       
       if (!articleSnap.exists) {
-        throw new Error("Article not found");
+        throw new NotFoundError("Article not found");
       }
       
       const articleData = articleSnap.data();
@@ -215,7 +216,7 @@ export class ArticleRepository extends BaseRepository {
         return {
           id: doc.id,
           ...data,
-          timestamp: serializeDate(data.timestamp)
+          timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : null
         };
       });
     } catch (error) {
@@ -264,6 +265,76 @@ export class ArticleRepository extends BaseRepository {
       return serializeArticle(this.serializeDocument(snapshot.docs[0]));
     } catch (error) {
       console.error("Error getting random article:", error);
+      throw error;
+    }
+  }
+  
+  async incrementViewCount(articleId) {
+    try {
+      if (!articleId) return;
+      
+      const articleRef = this.collection.doc(articleId);
+      
+      await articleRef.update({
+        viewCount: adminDb.FieldValue.increment(1)
+      });
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+      // Don't throw - non-critical operation
+    }
+  }
+  
+  async delete(articleId, userId) {
+    try {
+      if (!articleId || !userId) {
+        throw new ValidationError("Missing required information");
+      }
+      
+      // Get the article
+      const articleRef = this.collection.doc(articleId);
+      const articleSnap = await articleRef.get();
+      
+      if (!articleSnap.exists) {
+        throw new NotFoundError("Article not found");
+      }
+      
+      const articleData = articleSnap.data();
+      const categories = articleData.categories || [];
+      
+      // Start a batch
+      const batch = adminDb.batch();
+      
+      // Delete the article
+      batch.delete(articleRef);
+      
+      // Update category counts
+      for (const category of categories) {
+        const normalizedCategory = normalizeString(category);
+        const categoryRef = adminDb.collection("categories").doc(normalizedCategory);
+        
+        batch.update(categoryRef, {
+          articleCount: adminDb.FieldValue.increment(-1),
+          updatedAt: adminDb.FieldValue.serverTimestamp()
+        });
+      }
+      
+      // Create a deletion record
+      const deletionRef = adminDb.collection("deletions").doc();
+      const deletionData = {
+        articleId,
+        title: articleData.title,
+        deletedBy: userId,
+        deletedAt: adminDb.FieldValue.serverTimestamp(),
+        categories
+      };
+      
+      batch.set(deletionRef, deletionData);
+      
+      await batch.commit();
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting article:", error);
       throw error;
     }
   }

@@ -2,6 +2,7 @@
 import { BaseRepository } from './baseRepository';
 import { adminDb } from '@/lib/firebase/admin';
 import { serializeDate } from '@/lib/serializers';
+import { AuthError, NotFoundError, ValidationError } from '@/lib/errors/appErrors';
 
 export class UserRepository extends BaseRepository {
   constructor() {
@@ -30,12 +31,12 @@ export class UserRepository extends BaseRepository {
   async update(userId, updates) {
     try {
       if (!userId || !updates) {
-        throw new Error("Missing required information");
+        throw new ValidationError("Missing required information");
       }
       
       // Find user document
       const user = await this.findByUid(userId);
-      if (!user) throw new Error("User not found");
+      if (!user) throw new NotFoundError("User not found");
       
       const userDocRef = this.collection.doc(user.id);
       
@@ -51,6 +52,43 @@ export class UserRepository extends BaseRepository {
       return this.serializeDocument(updatedUserSnap);
     } catch (error) {
       console.error("Error updating user:", error);
+      throw error;
+    }
+  }
+  
+  async toggleWatchArticle(userId, articleId) {
+    try {
+      if (!userId || !articleId) {
+        throw new ValidationError("Missing required information");
+      }
+      
+      // Find user document
+      const user = await this.findByUid(userId);
+      if (!user) throw new NotFoundError("User not found");
+      
+      const userDocRef = this.collection.doc(user.id);
+      
+      // Check if article is already in watchlist
+      const watchlist = user.watchlist || [];
+      const isWatched = watchlist.includes(articleId);
+      
+      if (isWatched) {
+        // Remove from watchlist
+        await userDocRef.update({
+          watchlist: adminDb.FieldValue.arrayRemove(articleId),
+          updatedAt: adminDb.FieldValue.serverTimestamp()
+        });
+        return false;
+      } else {
+        // Add to watchlist
+        await userDocRef.update({
+          watchlist: adminDb.FieldValue.arrayUnion(articleId),
+          updatedAt: adminDb.FieldValue.serverTimestamp()
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error("Error toggling watch status:", error);
       throw error;
     }
   }
@@ -108,43 +146,6 @@ export class UserRepository extends BaseRepository {
     }
   }
   
-  async toggleWatchArticle(userId, articleId) {
-    try {
-      if (!userId || !articleId) {
-        throw new Error("Missing required information");
-      }
-      
-      // Find user document
-      const user = await this.findByUid(userId);
-      if (!user) throw new Error("User not found");
-      
-      const userDocRef = this.collection.doc(user.id);
-      
-      // Check if article is already in watchlist
-      const watchlist = user.watchlist || [];
-      const isWatched = watchlist.includes(articleId);
-      
-      if (isWatched) {
-        // Remove from watchlist
-        await userDocRef.update({
-          watchlist: adminDb.FieldValue.arrayRemove(articleId),
-          updatedAt: adminDb.FieldValue.serverTimestamp()
-        });
-        return false;
-      } else {
-        // Add to watchlist
-        await userDocRef.update({
-          watchlist: adminDb.FieldValue.arrayUnion(articleId),
-          updatedAt: adminDb.FieldValue.serverTimestamp()
-        });
-        return true;
-      }
-    } catch (error) {
-      console.error("Error toggling watch status:", error);
-      throw error;
-    }
-  }
-  
   async getWatchedArticles(userId) {
     try {
       if (!userId) return [];
@@ -180,6 +181,63 @@ export class UserRepository extends BaseRepository {
     } catch (error) {
       console.error("Error getting watched articles:", error);
       throw error;
+    }
+  }
+  
+  async createProfile(userData) {
+    try {
+      if (!userData.uid) {
+        throw new ValidationError("User ID is required");
+      }
+      
+      // Check if profile already exists
+      const existingUser = await this.findByUid(userData.uid);
+      if (existingUser) return existingUser;
+      
+      // Create new profile
+      const newUserRef = this.collection.doc();
+      
+      const profileData = {
+        uid: userData.uid,
+        email: userData.email || null,
+        displayName: userData.displayName || null,
+        photoURL: userData.photoURL || null,
+        watchlist: [],
+        settings: userData.settings || {
+          emailNotifications: true,
+          theme: 'light'
+        },
+        createdAt: adminDb.FieldValue.serverTimestamp(),
+        updatedAt: adminDb.FieldValue.serverTimestamp(),
+        lastLogin: adminDb.FieldValue.serverTimestamp()
+      };
+      
+      await newUserRef.set(profileData);
+      
+      // Get the created profile
+      const newProfile = await newUserRef.get();
+      return this.serializeDocument(newProfile);
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      throw error;
+    }
+  }
+  
+  async updateLastLogin(userId) {
+    try {
+      if (!userId) return;
+      
+      const user = await this.findByUid(userId);
+      if (!user) return;
+      
+      const userDocRef = this.collection.doc(user.id);
+      
+      await userDocRef.update({
+        lastLogin: adminDb.FieldValue.serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error updating last login:", error);
+      // Don't throw - this is a non-critical operation
     }
   }
 }

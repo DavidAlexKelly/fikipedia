@@ -1,3 +1,9 @@
+/**
+ * IMPORTANT: This module should only be imported by repository files.
+ * Other parts of the application should access data through repositories
+ * and server actions, not directly through Firebase.
+ */
+
 // src/lib/firebase/admin.js
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';

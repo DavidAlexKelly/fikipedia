@@ -1,9 +1,8 @@
-// src/hooks/data/useWiki.js
+// For example, in src/hooks/data/useWiki.js
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getRecentChanges } from '@/actions/articleActions';
-import { getSiteStats } from '@/actions/wikiActions';
+import { getRecentChanges, getSiteStats } from '@/actions/wikiActions';
 
 /**
  * Hook for fetching recent changes

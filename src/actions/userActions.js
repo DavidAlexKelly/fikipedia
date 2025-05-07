@@ -5,6 +5,7 @@ import { userRepository } from '@/repositories/userRepository';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { AuthError } from '@/lib/errors/appErrors';
 
 /**
  * Get current user profile
@@ -33,7 +34,7 @@ export async function updateUserProfile(updates) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
-    throw new Error("Authentication required");
+    throw new AuthError("Authentication required");
   }
   
   const result = await userRepository.update(session.user.id, updates);
@@ -65,7 +66,7 @@ export async function toggleWatchArticle(articleId) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
-    throw new Error("Authentication required");
+    throw new AuthError("Authentication required");
   }
   
   const result = await userRepository.toggleWatchArticle(session.user.id, articleId);
@@ -88,4 +89,26 @@ export async function getWatchedArticles() {
   }
   
   return userRepository.getWatchedArticles(session.user.id);
+}
+
+/**
+ * Create a user profile
+ */
+export async function createUserProfile(userData) {
+  if (!userData?.uid) {
+    throw new Error("User ID is required");
+  }
+  
+  return userRepository.createProfile(userData);
+}
+
+/**
+ * Update user's last login timestamp
+ */
+export async function updateLastLogin() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.id) return;
+  
+  await userRepository.updateLastLogin(session.user.id);
 }
