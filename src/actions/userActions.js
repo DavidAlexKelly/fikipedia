@@ -1,4 +1,4 @@
-// src/actions/userActions.js
+// src/actions/userActions.js - REFACTORED VERSION
 'use server'
 
 import { userRepository } from '@/repositories/userRepository';

@@ -1,13 +1,13 @@
-// src/actions/authActions.js
+// src/actions/authActions.js - REFACTORED VERSION
 'use server'
 
-import { authRepository } from '@/repositories/authRepository';
+import { userRepository } from '@/repositories/userRepository';
 import { ValidationError, AuthError } from '@/lib/errors/appErrors';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 /**
- * Get user profile by Firebase UID
+ * Get user profile by Firebase UID - Now using unified repo
  * @param {string} uid - Firebase UID
  */
 export async function getUserProfile(uid) {
@@ -15,7 +15,7 @@ export async function getUserProfile(uid) {
     throw new ValidationError("User ID is required");
   }
   
-  return authRepository.getUserProfile(uid);
+  return userRepository.findByUid(uid);
 }
 
 /**
@@ -28,12 +28,11 @@ export async function getCurrentUserProfile() {
     return null;
   }
   
-  return authRepository.getUserProfile(session.user.id);
+  return userRepository.findByUid(session.user.id);
 }
 
 /**
  * Synchronize session user with Firebase
- * Creates/updates Firebase Auth and Firestore records
  */
 export async function syncSessionUser() {
   const session = await getServerSession(authOptions);
@@ -42,7 +41,7 @@ export async function syncSessionUser() {
     return null;
   }
   
-  return authRepository.syncUserWithAuth(session);
+  return userRepository.syncWithFirebaseAuth(session);
 }
 
 /**
@@ -65,6 +64,6 @@ export async function isAdmin() {
     return false;
   }
   
-  const userProfile = await authRepository.getUserProfile(session.user.id);
+  const userProfile = await userRepository.findByUid(session.user.id);
   return userProfile?.isAdmin === true;
 }

@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { FirestoreAdapter } from "@auth/firebase-adapter";
 import { adminDb, adminAuth } from "@/lib/firebase/admin";
+import { userRepository } from "@/repositories/userRepository";
 
 export const authOptions = {
   providers: [
@@ -19,43 +20,11 @@ export const authOptions = {
         session.user.id = user.id;
       }
       
-      // For full Firebase Admin integration, we would synchronize the user
-      // with Firebase Auth here, but simplified for better design
+      // For Firebase integration, we now use the unified userRepository
       if (session?.user?.email) {
         try {
-          // Try to get or create the user in Firebase Auth if needed
-          // This is now a server-side operation
-          let firebaseUser = null;
-          try {
-            firebaseUser = await adminAuth.getUserByEmail(session.user.email);
-          } catch (error) {
-            if (error.code === 'auth/user-not-found') {
-              // Create the user in Firebase Auth
-              firebaseUser = await adminAuth.createUser({
-                email: session.user.email,
-                displayName: session.user.name,
-                photoURL: session.user.image,
-                emailVerified: true,
-              });
-              
-              // Initialize user data in Firestore (if not already handled by adapter)
-              const userProfileRef = adminDb.collection('userProfiles').doc(firebaseUser.uid);
-              await userProfileRef.set({
-                email: session.user.email,
-                displayName: session.user.name,
-                photoURL: session.user.image,
-                createdAt: new Date(),
-                lastLogin: new Date(),
-                settings: {
-                  emailNotifications: true,
-                  theme: 'light',
-                  watchlist: []
-                }
-              }, { merge: true });
-            } else {
-              throw error;
-            }
-          }
+          // Use the centralized function to sync with Firebase Auth
+          await userRepository.syncWithFirebaseAuth(session);
         } catch (error) {
           console.error("Error syncing user with Firebase Auth:", error);
           // Don't fail the session callback
