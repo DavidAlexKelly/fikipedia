@@ -1,50 +1,118 @@
-
+// src/middleware.js
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-export async function middleware(req) {
-  console.log('Middleware checking auth for:', req.nextUrl.pathname);
-  
+export async function middleware(request) {
   // Get the pathname
-  const path = req.nextUrl.pathname;
+  const path = request.nextUrl.pathname;
   
-  // Define paths that require authentication
-  const authRequiredPaths = [
+  // Paths that require authentication
+  const protectedPaths = [
+    // Article creation and editing
     '/wiki/*/edit',
     '/create',
+    '/new-article',
+    
+    // User account pages
     '/profile',
+    '/settings',
+    '/dashboard',
+    '/watchlist',
+    '/contributions',
+    
+    // Content management
+    '/upload',
+    '/drafts',
+    '/review',
+    
+    // API routes requiring auth
+    '/api/articles/create',
+    '/api/articles/*/edit',
+    '/api/articles/*/delete',
+    '/api/users/me',
+    '/api/users/me/*',
+    '/api/upload'
   ];
   
-  // Check if the path requires authentication
-  const requiresAuth = authRequiredPaths.some(pattern => {
-    // Convert glob pattern to regex
-    const regex = new RegExp(`^${pattern.replace('*', '.*')}$`);
-    return regex.test(path);
-  });
+  // Public paths that should always be accessible
+  const publicPaths = [
+    '/',
+    '/login',
+    '/signup',
+    '/api/auth',
+    '/wiki',
+    '/search',
+    '/changes',
+    '/random',
+    '/categories',
+    '/category',
+    '/about',
+    '/help',
+    '/guidelines',
+    '/terms',
+    '/privacy',
+    '/contact',
+    '/_next',
+    '/favicon.ico',
+    '/images'
+  ];
   
-  if (requiresAuth) {
-    // Get the token from NextAuth
-    const token = await getToken({ 
-      req: req, 
-      secret: process.env.NEXTAUTH_SECRET 
-    });
-    
-    // If no token, redirect to login
-    if (!token) {
-      console.log('Auth required but no token found, redirecting to login');
-      const url = new URL('/login', req.url);
-      url.searchParams.set('callbackUrl', req.url);
-      return NextResponse.redirect(url);
-    }
+  // Check if the current path is public
+  const isPublicPath = publicPaths.some(publicPath => 
+    path === publicPath || 
+    path.startsWith(`${publicPath}/`)
+  );
+  
+  // If path is public, allow access
+  if (isPublicPath) {
+    return NextResponse.next();
   }
   
+  // Check if path requires authentication
+  const isProtectedPath = protectedPaths.some(protectedPath => {
+    if (protectedPath.includes('*')) {
+      // Handle wildcards by converting to regex pattern
+      const pattern = new RegExp(`^${protectedPath.replace('*', '.*')}$`);
+      return pattern.test(path);
+    }
+    return path === protectedPath || path.startsWith(`${protectedPath}/`);
+  });
+  
+  // If path requires authentication, check for a valid session
+  if (isProtectedPath) {
+    // Get the authentication token
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET
+    });
+    
+    // If not authenticated, redirect to login
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      // Add the current path as a callback URL after login
+      loginUrl.searchParams.set('callbackUrl', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    // If user has a token but lacks required permissions for specific routes,
+    // you could add additional checks here
+    
+    // For example, admin routes could be protected like this:
+    /*
+    if (path.startsWith('/admin') && token.role !== 'admin') {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+    */
+  }
+  
+  // Allow the request to proceed
   return NextResponse.next();
 }
 
+// Configure middleware to run only on specified paths
 export const config = {
   matcher: [
-    '/wiki/:path*/edit',
-    '/create',
-    '/profile',
-  ],
+    // Include all paths that need authentication checking
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|robots.txt).*)',
+  ]
 };

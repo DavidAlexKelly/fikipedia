@@ -1,5 +1,5 @@
 // src/app/wiki/[title]/edit/page.jsx
-import { getArticleByTitle } from '@/services/server/articleService';
+import { getArticleByTitle } from '@/actions/articleActions';
 import ArticleEditClientView from '@/components/article/ArticleEditClientView';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
@@ -32,7 +32,7 @@ export default async function EditArticlePage({ params }) {
     return redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }
   
-  // Fetch the article if it exists
+  // Fetch the article if it exists using server action
   const article = await getArticleByTitle(title);
   
   return <ArticleEditClientView title={title} initialArticle={article} />;

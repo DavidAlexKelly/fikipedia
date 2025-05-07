@@ -1,42 +1,34 @@
+// src/hooks/data/useCategory.js
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { getArticlesByCategory, getCategoryInfo, getAllCategories } from '@/actions/categoryActions';
 
-/**
- * Hook for fetching articles in a specific category
- * @param {string} category - Category name
- * @returns {Object} Query result object
- */
-export function useArticlesByCategory(category) {
+export function useArticlesByCategory(category, options = {}) {
   return useQuery({
     queryKey: ['category', category],
-    queryFn: async () => {
-      if (!category) return [];
-      const response = await fetch(`/api/categories/${encodeURIComponent(category)}/articles`);
-      if (!response.ok) {
-        throw new Error(`Error fetching category articles: ${response.statusText}`);
-      }
-      return response.json();
-    },
+    queryFn: () => getArticlesByCategory(category),
     enabled: !!category,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options
   });
 }
 
-/**
- * Hook for fetching all categories
- * @returns {Object} Query result object
- */
-export function useAllCategories() {
+export function useCategoryInfo(category, options = {}) {
+  return useQuery({
+    queryKey: ['categoryInfo', category],
+    queryFn: () => getCategoryInfo(category),
+    enabled: !!category,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options
+  });
+}
+
+export function useAllCategories(options = {}) {
   return useQuery({
     queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await fetch('/api/categories');
-      if (!response.ok) {
-        throw new Error(`Error fetching categories: ${response.statusText}`);
-      }
-      return response.json();
-    },
+    queryFn: getAllCategories,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    ...options
   });
 }

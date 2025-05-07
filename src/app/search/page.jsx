@@ -2,7 +2,7 @@
 import SearchClientView from '@/components/search/SearchClientView';
 
 export async function generateMetadata({ searchParams }) {
-  const query = searchParams?.q || '';
+  const query = (await searchParams)?.q || '';
   
   return {
     title: query ? `Search: ${query} - Fikipedia` : 'Search - Fikipedia',
@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }) {
 }
 
 export default async function SearchPage({ searchParams }) {
-  const query = searchParams?.q || '';
+  const query = (await searchParams)?.q || '';
   
   // The search is handled on the client-side to enable filtering and pagination
   return <SearchClientView initialQuery={query} />;

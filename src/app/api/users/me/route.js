@@ -1,6 +1,6 @@
-// /app/api/users/me/route.js
+// src/app/api/users/me/route.js
 import { NextResponse } from 'next/server';
-import { getUserProfile, updateUserProfile } from '@/services/server/userService';
+import { userRepository } from '@/repositories/userRepository';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -14,7 +14,7 @@ export async function GET() {
     }
     
     const userId = session.user.id;
-    const userProfile = await getUserProfile(userId);
+    const userProfile = await userRepository.findByUid(userId);
     
     if (!userProfile) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
@@ -39,9 +39,9 @@ export async function PATCH(request) {
     const userId = session.user.id;
     const updates = await request.json();
     
-    const updatedProfile = await updateUserProfile(userId, updates);
+    const result = await userRepository.update(userId, updates);
     
-    return NextResponse.json(updatedProfile);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating user profile:', error);
     return NextResponse.json({ error: error.message || 'Failed to update user profile' }, { status: 500 });

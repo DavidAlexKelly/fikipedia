@@ -1,6 +1,6 @@
-// /app/api/articles/route.js
+// src/app/api/articles/route.js
 import { NextResponse } from 'next/server';
-import { createArticle } from '@/services/server/articleService';
+import { articleRepository } from '@/repositories/articleRepository';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -20,7 +20,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
     
-    const result = await createArticle(articleData, userId);
+    const result = await articleRepository.create(articleData, userId);
     
     return NextResponse.json(result);
   } catch (error) {

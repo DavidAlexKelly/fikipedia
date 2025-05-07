@@ -1,4 +1,4 @@
-// /components/changes/RecentChangesClientView.jsx
+// src/components/changes/RecentChangesClientView.jsx
 'use client';
 
 import { memo } from 'react';
@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRecentChanges } from '@/hooks/data/useWiki';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import Loading from '@/components/common/Loading';
 
 // Format date utility
 const formatDate = (date) => {
@@ -140,7 +141,10 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
   const { 
     data: recentChanges = initialChanges, 
     isLoading, 
-    error 
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
   } = useRecentChanges(100, {
     initialData: initialChanges
   });
@@ -166,6 +170,10 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
     (a, b) => new Date(b) - new Date(a)
   );
   
+  const handleLoadMore = () => {
+    fetchNextPage();
+  };
+  
   return (
     <>
       <Header />
@@ -184,7 +192,7 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
           
           {/* Recent Changes List */}
           {isLoading && initialChanges.length === 0 ? (
-            <div className="text-center py-4">Loading recent changes...</div>
+            <Loading message="Loading recent changes..." />
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
               Error loading recent changes: {error.message}
@@ -200,8 +208,12 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
               ))}
               
               <div className="mt-6 flex justify-center">
-                <button className="px-4 py-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200">
-                  Load more changes
+                <button 
+                  className="px-4 py-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 disabled:opacity-50"
+                  onClick={handleLoadMore}
+                  disabled={!hasNextPage || isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? 'Loading more...' : hasNextPage ? 'Load more changes' : 'No more changes'}
                 </button>
               </div>
             </div>

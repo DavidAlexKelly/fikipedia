@@ -1,15 +1,24 @@
-// /components/random/RandomLoadingView.jsx
+// src/components/random/RandomLoadingView.jsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRandomArticle } from '@/hooks/data/useRandom';
+import { useQuery } from '@tanstack/react-query';
+import { getRandomArticle } from '@/actions/articleActions';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
 export default function RandomLoadingView() {
   const router = useRouter();
-  const { data: article, isLoading, error, refetch } = useRandomArticle();
+  
+  // Use the getRandomArticle server action
+  const { data: article, isLoading, error, refetch } = useQuery({
+    queryKey: ['randomArticle'],
+    queryFn: getRandomArticle,
+    staleTime: 0, // Always refetch for true randomness
+    cacheTime: 0, // Don't cache results
+    retry: false, // Don't retry on failure
+  });
 
   // Effect to handle redirection when article data is available
   useEffect(() => {

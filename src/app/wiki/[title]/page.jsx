@@ -1,5 +1,5 @@
 // src/app/wiki/[title]/page.jsx
-import { getArticleByTitle } from '@/services/server/articleService';
+import { getArticleByTitle } from '@/actions/articleActions';
 import { parseWikiMarkup, extractHeadings } from '@/lib/wiki/parser';
 import ArticleClientView from '@/components/article/ArticleClientView';
 import ArticleNotFound from '@/components/article/ArticleNotFound';
@@ -7,7 +7,7 @@ import ArticleNotFound from '@/components/article/ArticleNotFound';
 export async function generateMetadata({ params }) {
   const title = (await params)?.title ? decodeURIComponent((await params).title) : '';
   
-  // Fetch article to get metadata
+  // Fetch article to get metadata using server action
   const article = await getArticleByTitle(title);
   
   return {
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }) {
 export default async function ArticlePage({ params }) {
   const title = (await params)?.title ? decodeURIComponent((await params).title) : '';
   
-  // Directly use server service to fetch article
+  // Directly use server action to fetch article
   const article = await getArticleByTitle(title);
   
   if (!article) {

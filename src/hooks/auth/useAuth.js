@@ -1,9 +1,10 @@
+// src/hooks/auth/useAuth.js
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { clientAuth } from '@/lib/firebase/client';
-import { getUserProfile } from '@/services/api/users';
+import { getUserProfile } from '@/actions/authActions'; // Updated import
 
 // Create auth context
 const AuthContext = createContext(null);
@@ -25,7 +26,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(clientAuth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Get additional user data from Firestore
+          // Get additional user data from server action
           const userProfile = await getUserProfile(firebaseUser.uid);
           
           setUser({

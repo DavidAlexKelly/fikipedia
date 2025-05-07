@@ -1,4 +1,4 @@
-// /components/article/ArticleEditClientView.jsx
+// src/components/article/ArticleEditClientView.jsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';

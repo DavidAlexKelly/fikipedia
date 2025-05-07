@@ -1,6 +1,6 @@
-// /app/api/changes/route.js
+// src/app/api/changes/route.js
 import { NextResponse } from 'next/server';
-import { getRecentChanges } from '@/services/server/wikiService';
+import { articleRepository } from '@/repositories/articleRepository';
 
 export async function GET(request) {
   try {
@@ -8,7 +8,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     
-    const changes = await getRecentChanges(limit);
+    const changes = await articleRepository.getRecentChanges(limit);
     
     return NextResponse.json(changes);
   } catch (error) {

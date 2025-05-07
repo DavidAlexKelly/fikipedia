@@ -1,4 +1,4 @@
-// /services/firebase/client.js - Updated version
+// src/lib/firebase/client.js
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
@@ -19,7 +19,7 @@ if (typeof window !== 'undefined') {
       clientApp = getApps()[0];
     }
     
-    // Initialize Firebase services (but NOT Firestore)
+    // Initialize Firebase services
     clientAuth = getAuth(clientApp);
     clientStorage = getStorage(clientApp);
     

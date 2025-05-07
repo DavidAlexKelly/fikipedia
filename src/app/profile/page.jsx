@@ -1,8 +1,8 @@
-// /app/profile/page.jsx
+// src/app/profile/page.jsx
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { getUserProfile, getUserContributions } from '@/services/server/userService';
+import { getUserProfile, getUserContributions } from '@/actions/userActions'; // Updated imports
 import ProfileClientView from '@/components/profile/ProfileClientView';
 
 export async function generateMetadata() {
@@ -12,7 +12,7 @@ export async function generateMetadata() {
   };
 }
 
-export default async function ProfilePage({ params, searchParams }) {
+export default async function ProfilePage() {
   // Check authentication
   const session = await getServerSession(authOptions);
   
@@ -21,7 +21,7 @@ export default async function ProfilePage({ params, searchParams }) {
     return redirect('/login?callbackUrl=/profile');
   }
   
-  // Fetch user data server-side
+  // Fetch user data server-side using server actions
   const userId = session.user.id;
   let userProfile = await getUserProfile(userId);
   
@@ -34,9 +34,6 @@ export default async function ProfilePage({ params, searchParams }) {
       photoURL: session.user.image,
       createdAt: new Date().toISOString()
     };
-    
-    // Optionally, you could create the user profile here
-    // await createUserProfile(userProfile);
   }
   
   // Use empty array for contributions if fetch fails

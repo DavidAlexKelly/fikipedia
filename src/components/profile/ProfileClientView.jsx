@@ -1,9 +1,9 @@
-// /components/profile/ProfileClientView.jsx
+// src/components/profile/ProfileClientView.jsx
 'use client';
 
 import { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { useUserProfile, useUserContributions } from '@/hooks/data/useUser';
+import { useUserContributions } from '@/hooks/data/useUser';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -194,15 +194,7 @@ export default function ProfileClientView({
 }) {
   const [activeTab, setActiveTab] = useState('contributions');
   
-  // Use React Query with initial data from server
-  const { 
-    data: userProfile = initialProfile,
-    isLoading: profileLoading,
-    error: profileError
-  } = useUserProfile(session.user.id, {
-    initialData: initialProfile
-  });
-  
+  // Use the userContributions hook (now using server actions)
   const {
     data: contributions = initialContributions, 
     isLoading: contributionsLoading,
@@ -232,7 +224,7 @@ export default function ProfileClientView({
                   <h1 className="text-2xl font-serif font-bold">{session.user.name || 'User'}</h1>
                   <p className="text-gray-600">{session.user.email}</p>
                   <div className="mt-2 text-sm text-gray-500">
-                    Member since {formatDate(userProfile?.createdAt || new Date())}
+                    Member since {formatDate(initialProfile?.createdAt || new Date())}
                   </div>
                 </div>
               </div>
@@ -256,11 +248,7 @@ export default function ProfileClientView({
             
             {/* Tab Content */}
             <div className="p-6">
-              {profileError ? (
-                <div className="bg-red-50 border border-red-200 p-4 rounded text-red-600">
-                  Error loading profile: {profileError.message || "Unknown error"}
-                </div>
-              ) : activeTab === 'contributions' ? (
+              {activeTab === 'contributions' ? (
                 <ContributionsTab 
                   contributions={contributions}
                   isLoading={contributionsLoading}

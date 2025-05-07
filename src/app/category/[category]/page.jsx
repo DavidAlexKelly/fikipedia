@@ -1,5 +1,5 @@
 // src/app/category/[category]/page.jsx
-import { getArticlesByCategory, getCategoryInfo } from '@/services/server/categoryService';
+import { getCategoryInfo, getArticlesByCategory } from '@/actions/categoryActions';
 import CategoryClientView from '@/components/category/CategoryClientView';
 
 export async function generateMetadata({ params }) {
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
 export default async function CategoryPage({ params }) {
   const category = (await params)?.category ? decodeURIComponent((await params).category) : '';
   
-  // Server-side data fetching
+  // Server-side data fetching using server actions
   const articles = await getArticlesByCategory(category);
   const categoryInfo = await getCategoryInfo(category);
   

@@ -1,6 +1,5 @@
 // src/app/wiki/[title]/history/page.jsx
-import { getArticleByTitle } from '@/services/server/articleService';
-import { getArticleRevisions } from '@/services/server/articleService';
+import { getArticleByTitle, getArticleRevisions } from '@/actions/articleActions';
 import ArticleHistoryClientView from '@/components/article/ArticleHistoryClientView';
 
 export async function generateMetadata({ params }) {
@@ -15,7 +14,7 @@ export async function generateMetadata({ params }) {
 export default async function ArticleHistoryPage({ params }) {
   const title = (await params)?.title ? decodeURIComponent((await params).title) : '';
   
-  // Fetch the article
+  // Fetch the article using server action
   const article = await getArticleByTitle(title);
   
   // If article exists, fetch its revisions

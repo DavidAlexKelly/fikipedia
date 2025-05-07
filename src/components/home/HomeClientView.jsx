@@ -1,4 +1,4 @@
-// /components/home/HomeClientView.jsx
+// src/components/home/HomeClientView.jsx
 'use client';
 
 import Link from 'next/link';

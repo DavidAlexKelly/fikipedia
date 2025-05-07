@@ -1,5 +1,5 @@
 // src/app/random/page.jsx
-import { getRandomArticle } from '@/services/server/articleService';
+import { getRandomArticle } from '@/actions/articleActions'; // Updated import
 import { redirect } from 'next/navigation';
 import RandomLoadingView from '@/components/random/RandomLoadingView';
 
@@ -11,7 +11,7 @@ export async function generateMetadata() {
 }
 
 export default async function RandomPage() {
-  // Try to get a random article
+  // Try to get a random article using server action
   const article = await getRandomArticle();
   
   // If we found an article, redirect to it

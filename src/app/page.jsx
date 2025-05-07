@@ -1,5 +1,5 @@
-// /app/page.jsx
-import { getSiteStats } from '@/services/server/wikiService';
+// src/app/page.jsx
+import { getSiteStats } from '@/actions/wikiActions'; // Updated import
 import HomeClientView from '@/components/home/HomeClientView';
 
 export async function generateMetadata() {
@@ -10,7 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
-  // Fetch site stats server-side
+  // Fetch site stats using server action
   const stats = await getSiteStats();
   
   // Pass to client component

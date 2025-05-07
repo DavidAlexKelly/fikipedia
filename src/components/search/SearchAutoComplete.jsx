@@ -4,23 +4,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import algoliasearch from 'algoliasearch/lite';
+import { useSearchArticles } from '@/hooks/data/useSearch';
 
 export default function SearchAutocomplete() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
   
-  // Initialize Algolia client directly
-  const algoliaClient = algoliasearch(
-    process.env.NEXT_PUBLIC_ALGOLIA_APP_ID,
-    process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
-  );
-  const algoliaIndex = algoliaClient.initIndex(process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME);
+  const { 
+    search,
+    data: results = [], 
+    isPending: isLoading 
+  } = useSearchArticles();
   
   // Handle search input change
   const handleInputChange = (e) => {
@@ -28,32 +25,10 @@ export default function SearchAutocomplete() {
     setQuery(value);
     
     if (value.length >= 2) {
-      performSearch(value);
+      search(value);
+      setIsOpen(true);
     } else {
-      setResults([]);
       setIsOpen(false);
-    }
-  };
-  
-  // Perform search with debounce
-  const performSearch = async (searchQuery) => {
-    setLoading(true);
-    
-    try {
-      const { hits } = await algoliaIndex.search(searchQuery, {
-        hitsPerPage: 5,
-        attributesToRetrieve: ['title', 'content'],
-        attributesToHighlight: ['title'],
-        highlightPreTag: '<mark>',
-        highlightPostTag: '</mark>',
-      });
-      
-      setResults(hits);
-      setIsOpen(hits.length > 0);
-    } catch (error) {
-      console.error('Autocomplete search error:', error);
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -118,21 +93,21 @@ export default function SearchAutocomplete() {
           ref={resultsRef}
           className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg"
         >
-          {loading ? (
+          {isLoading ? (
             <div className="p-2 text-center text-sm text-gray-500">Loading...</div>
-          ) : (
+          ) : results && results.length > 0 ? (
             <ul>
-              {results.map((hit) => (
-                <li key={hit.objectID} className="border-b border-gray-100 last:border-b-0">
+              {results.map((result) => (
+                <li key={result.id} className="border-b border-gray-100 last:border-b-0">
                   <Link 
-                    href={`/wiki/${encodeURIComponent(hit.title)}`}
+                    href={`/wiki/${encodeURIComponent(result.title)}`}
                     className="block px-4 py-2 hover:bg-gray-100"
                     onClick={() => setIsOpen(false)}
                   >
-                    <div dangerouslySetInnerHTML={{ __html: hit._highlightResult?.title?.value || hit.title }} />
-                    {hit.content && (
+                    <div className="font-medium">{result.title}</div>
+                    {result.content && (
                       <div className="text-xs text-gray-600 truncate mt-1">
-                        {hit.content.substring(0, 100)}...
+                        {result.content.substring(0, 100)}...
                       </div>
                     )}
                   </Link>
@@ -140,18 +115,20 @@ export default function SearchAutocomplete() {
               ))}
               
               {/* View all results link */}
-              {results.length > 0 && (
-                <li className="bg-gray-50">
-                  <Link 
-                    href={`/search?q=${encodeURIComponent(query)}`}
-                    className="block px-4 py-2 text-center text-sm text-blue-600 hover:underline"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    View all results for "{query}"
-                  </Link>
-                </li>
-              )}
+              <li className="bg-gray-50">
+                <Link 
+                  href={`/search?q=${encodeURIComponent(query)}`}
+                  className="block px-4 py-2 text-center text-sm text-blue-600 hover:underline"
+                  onClick={() => setIsOpen(false)}
+                >
+                  View all results for "{query}"
+                </Link>
+              </li>
             </ul>
+          ) : (
+            <div className="p-2 text-center text-sm text-gray-500">
+              No results found for "{query}"
+            </div>
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
-// /app/api/users/me/contributions/route.js
+// src/app/api/users/me/contributions/route.js
 import { NextResponse } from 'next/server';
-import { getUserContributions } from '@/services/server/userService';
+import { userRepository } from '@/repositories/userRepository';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -19,7 +19,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     
-    const contributions = await getUserContributions(userId, limit);
+    const contributions = await userRepository.getContributions(userId, limit);
     
     return NextResponse.json(contributions);
   } catch (error) {

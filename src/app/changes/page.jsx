@@ -1,5 +1,5 @@
-// /app/changes/page.jsx
-import { getRecentChanges } from '@/services/server/wikiService';
+// src/app/changes/page.jsx
+import { getRecentChanges } from '@/actions/articleActions'; // Updated import
 import RecentChangesClientView from '@/components/changes/RecentChangesClientView';
 
 export async function generateMetadata() {
@@ -10,7 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function RecentChangesPage() {
-  // Fetch recent changes server-side
+  // Fetch recent changes using server action
   const changes = await getRecentChanges(50);
   
   // Pass data to client component

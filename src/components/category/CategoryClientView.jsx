@@ -1,8 +1,9 @@
-// /components/category/CategoryClientView.jsx
+// src/components/category/CategoryClientView.jsx
 'use client';
 
 import { memo } from 'react';
 import Link from 'next/link';
+import { useArticlesByCategory } from '@/hooks/data/useCategory';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -109,7 +110,16 @@ ArticleListItem.displayName = 'ArticleListItem';
 
 // Main category page component
 export default function CategoryClientView({ category, articles = [], categoryInfo }) {
-  const articleCount = categoryInfo?.articleCount || articles.length;
+  // Use the category hook
+  const { 
+    data: categoryArticles = articles,
+    isLoading,
+    error
+  } = useArticlesByCategory(category, {
+    initialData: articles
+  });
+  
+  const articleCount = categoryInfo?.articleCount || categoryArticles.length;
   
   if (!category) {
     return (
@@ -151,10 +161,19 @@ export default function CategoryClientView({ category, articles = [], categoryIn
             </Link>
           </div>
           
-          {articles.length > 0 ? (
+          {isLoading ? (
+            <div className="bg-white border border-gray-300 rounded p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading articles...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
+              Error loading articles: {error.message}
+            </div>
+          ) : categoryArticles.length > 0 ? (
             <div className="bg-white border border-gray-300 rounded">
               <ul className="divide-y divide-gray-200">
-                {articles.map(article => (
+                {categoryArticles.map(article => (
                   <ArticleListItem 
                     key={article.id} 
                     article={article} 

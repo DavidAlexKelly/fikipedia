@@ -1,6 +1,8 @@
+// src/components/search/SearchClientView.jsx
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSearch } from '@/hooks/data/useSearch';
 import Header from '@/components/layout/Header';
@@ -148,18 +150,20 @@ export default function SearchClientView({ initialQuery = '' }) {
   const [searchType, setSearchType] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
 
+  // Use the search hook
   const {
-    data = { hits: [], nbHits: 0, nbPages: 0 },
+    data: searchResults = [],
     isLoading,
     error,
     refetch,
-  } = useSearch(query, {
-    page: currentPage,
-    filters,
-    hitsPerPage: 10,
-  });
+  } = useSearch(query);
 
-  const { hits, nbHits, nbPages } = data;
+  // Setup default values for search results to prevent undefined errors
+  const hits = searchResults || [];
+  const nbHits = hits.length || 0;
+  const nbPages = Math.ceil(nbHits / 10) || 0;
+
+  const router = useRouter();
 
   useEffect(() => {
     setCurrentPage(0);
@@ -173,7 +177,7 @@ export default function SearchClientView({ initialQuery = '' }) {
     if (searchQuery?.trim()) {
       setQuery(searchQuery.trim());
       if (typeof window !== 'undefined') {
-        window.history.pushState({}, '', `/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`, { scroll: false });
       }
       refetch();
     }
@@ -269,7 +273,7 @@ export default function SearchClientView({ initialQuery = '' }) {
               <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
                 Error: {error.message}
               </div>
-            ) : hits.length > 0 ? (
+            ) : hits && hits.length > 0 ? (
               <div>
                 <div className="text-sm text-gray-600 mb-4">
                   {nbHits} {nbHits === 1 ? 'result' : 'results'} found
@@ -277,7 +281,7 @@ export default function SearchClientView({ initialQuery = '' }) {
 
                 <ul className="divide-y divide-gray-200">
                   {hits.map((hit) => (
-                    <SearchResult key={hit.objectID} result={hit} useHighlight={true} />
+                    <SearchResult key={hit.id || hit.objectID} result={hit} useHighlight={true} />
                   ))}
                 </ul>
 

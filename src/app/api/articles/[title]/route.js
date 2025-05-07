@@ -1,6 +1,6 @@
-// /app/api/articles/[title]/route.js
+// src/app/api/articles/[title]/route.js
 import { NextResponse } from 'next/server';
-import { getArticleByTitle } from '@/services/server/articleService';
+import { articleRepository } from '@/repositories/articleRepository';
 
 export async function GET(request, { params }) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
     
-    const article = await getArticleByTitle(title);
+    const article = await articleRepository.findByTitle(title);
     
     if (!article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
@@ -19,6 +19,6 @@ export async function GET(request, { params }) {
     return NextResponse.json(article);
   } catch (error) {
     console.error('Error fetching article:', error);
-    return NextResponse.json({ error: 'Failed to fetch article' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
   }
 }

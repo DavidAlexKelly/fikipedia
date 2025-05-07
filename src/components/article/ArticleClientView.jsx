@@ -1,9 +1,10 @@
-// /components/article/ArticleClientView.jsx
+// src/components/article/ArticleClientView.jsx
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useToggleWatchArticle } from '@/hooks/data/useUser';
 import TableOfContents from '@/components/article/TableOfContents';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -40,6 +41,29 @@ const formatDate = (dateString, format = 'medium') => {
 
 export default function ArticleClientView({ article, contentHtml, headings }) {
   const { data: session } = useSession();
+  const [isWatching, setIsWatching] = useState(
+    article.watchedBy?.includes(session?.user?.id) || false
+  );
+  
+  // Use the toggleWatchArticle hook from our new architecture
+  const { mutate: toggleWatchArticle, isPending: isWatchTogglePending } = useToggleWatchArticle();
+  
+  const handleToggleWatch = () => {
+    if (!session) {
+      // Redirect to login if not signed in
+      window.location.href = `/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    
+    toggleWatchArticle(
+      { articleId: article.id },
+      {
+        onSuccess: (data) => {
+          setIsWatching(data.isWatching);
+        }
+      }
+    );
+  };
   
   return (
     <>
@@ -80,6 +104,15 @@ export default function ArticleClientView({ article, contentHtml, headings }) {
               <div className="border border-gray-300 rounded p-3 mb-6">
                 <div className="font-medium text-sm mb-2">Tools</div>
                 <ul className="text-sm">
+                  <li className="my-1">
+                    <button
+                      onClick={handleToggleWatch}
+                      disabled={isWatchTogglePending}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {isWatchTogglePending ? 'Updating...' : isWatching ? 'Unwatch' : 'Watch'} this article
+                    </button>
+                  </li>
                   <li className="my-1">
                     <Link href={`/wiki/Special:WhatLinksHere/${encodeURIComponent(article.title)}`} className="text-blue-600 hover:underline">
                       What links here

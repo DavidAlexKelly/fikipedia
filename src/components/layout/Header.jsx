@@ -1,4 +1,3 @@
-// src/components/layout/Header.jsx
 'use client';
 
 import { useState, useCallback, memo } from 'react';
