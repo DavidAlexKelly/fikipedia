@@ -7,64 +7,7 @@ import { getRecentChanges } from '@/actions/wikiActions'; // Direct server actio
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
-
-// Format date utility
-const formatDate = (date) => {
-  return new Intl.DateTimeFormat('en-GB', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date);
-};
-
-// Time ago utility
-const timeAgo = (date) => {
-  const seconds = Math.floor((new Date() - date) / 1000);
-  
-  let interval = Math.floor(seconds / 31536000);
-  if (interval > 1) {
-    return `${interval} years ago`;
-  }
-  if (interval === 1) {
-    return `1 year ago`;
-  }
-  
-  interval = Math.floor(seconds / 2592000);
-  if (interval > 1) {
-    return `${interval} months ago`;
-  }
-  if (interval === 1) {
-    return `1 month ago`;
-  }
-  
-  interval = Math.floor(seconds / 86400);
-  if (interval > 1) {
-    return `${interval} days ago`;
-  }
-  if (interval === 1) {
-    return `1 day ago`;
-  }
-  
-  interval = Math.floor(seconds / 3600);
-  if (interval > 1) {
-    return `${interval} hours ago`;
-  }
-  if (interval === 1) {
-    return `1 hour ago`;
-  }
-  
-  interval = Math.floor(seconds / 60);
-  if (interval > 1) {
-    return `${interval} minutes ago`;
-  }
-  if (interval === 1) {
-    return `1 minute ago`;
-  }
-  
-  return `${Math.floor(seconds)} seconds ago`;
-};
+import { formatDate, timeAgo } from '@/lib/utils/dateUtils';
 
 // Memoized change item component
 const ChangeItem = memo(({ change }) => {

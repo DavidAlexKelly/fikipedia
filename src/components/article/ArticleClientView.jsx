@@ -9,36 +9,7 @@ import { incrementViewCount } from '@/actions/articleActions'; // Direct server 
 import TableOfContents from '@/components/article/TableOfContents';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-
-// Helper function to format date strings
-const formatDate = (dateString, format = 'medium') => {
-  if (!dateString) return 'Unknown date';
-  
-  try {
-    const date = new Date(dateString);
-    
-    if (isNaN(date.getTime())) {
-      return 'Unknown date';
-    }
-    
-    const formats = {
-      short: { year: 'numeric', month: 'short', day: 'numeric' },
-      medium: { year: 'numeric', month: 'long', day: 'numeric' },
-      long: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
-      time: { hour: '2-digit', minute: '2-digit' },
-      datetime: { 
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      }
-    };
-    
-    return new Intl.DateTimeFormat('en-US', formats[format] || formats.medium)
-      .format(date);
-  } catch (e) {
-    console.error('Error formatting date:', e);
-    return 'Unknown date';
-  }
-};
+import { formatDate } from '@/lib/utils/dateUtils';
 
 export default function ArticleClientView({ article, contentHtml, headings }) {
   const { data: session } = useSession();
@@ -76,8 +47,6 @@ export default function ArticleClientView({ article, contentHtml, headings }) {
       }
     );
   };
-  
-  // Rest of component unchanged
   
   return (
     <>

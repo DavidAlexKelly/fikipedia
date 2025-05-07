@@ -7,17 +7,7 @@ import { useUserContributions } from '@/hooks/data/useUser';
 import { updateUserProfile } from '@/actions/userActions'; // Direct server action import
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-
-// Format date utility function
-const formatDate = (date) => {
-  if (!date) return 'Unknown date';
-  
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
+import { formatDate } from '@/lib/utils/dateUtils';
 
 // User avatar component
 const UserAvatar = memo(({ user, size = 'md' }) => {

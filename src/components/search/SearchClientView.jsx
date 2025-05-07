@@ -8,19 +8,7 @@ import { searchArticles } from '@/actions/searchActions'; // Direct server actio
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
-
-// Format date for consistency
-const formatDate = (date) => {
-  if (!date || isNaN(new Date(date).getTime())) {
-    return 'Unknown date';
-  }
-
-  return new Intl.DateTimeFormat('en-GB', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(date));
-};
+import { formatDate } from '@/lib/utils/dateUtils';
 
 // Memoized search result component
 const SearchResult = memo(({ result }) => {
@@ -69,7 +57,7 @@ const SearchResult = memo(({ result }) => {
         </div>
         <div>
           <span className="font-medium">Last modified:</span>{' '}
-          {result.lastModified ? formatDate(result.lastModified) : 'Unknown date'}
+          {result.lastModified ? formatDate(result.lastModified, 'short') : 'Unknown date'}
         </div>
       </div>
     </li>

@@ -6,17 +6,7 @@ import Link from 'next/link';
 import { useArticlesByCategory } from '@/hooks/data/useCategory';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-
-// Format date for consistency
-const formatDate = (dateString) => {
-  if (!dateString) return 'Unknown date';
-  
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
+import { formatDate } from '@/lib/utils/dateUtils';
 
 // Empty category state component
 const EmptyCategoryState = memo(({ category }) => (
@@ -97,7 +87,7 @@ const ArticleListItem = memo(({ article, category }) => (
       </div>
       
       <div className="mt-2 sm:mt-0 text-xs text-gray-500 sm:text-right">
-        <div>Last modified: {formatDate(article.lastModified)}</div>
+        <div>Last modified: {formatDate(article.lastModified, 'short')}</div>
         <div className="mt-1">
           by <Link href={`/user/${article.lastEditor}`} className="text-blue-600 hover:underline">{article.lastEditor}</Link>
         </div>

@@ -7,19 +7,7 @@ import { getArticleRevisions } from '@/actions/articleActions'; // Direct server
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
-
-// Format date utility function
-const formatDate = (date) => {
-  if (!date) return 'Unknown date';
-  
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+import { formatDate } from '@/lib/utils/dateUtils';
 
 // Revision item component
 const RevisionItem = memo(({ revision, isSelected, onSelect }) => {
