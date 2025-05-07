@@ -4,20 +4,44 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { getArticleComments, addComment } from '@/actions/articleActions'; // Direct server action imports
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-// This component isn't fully implemented in the current codebase, 
-// but we can prepare it for server-side architecture
 export default function ArticleTalkClientView({ title, article }) {
   const { data: session } = useSession();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // In the future, you would add:
-  // const { data: comments, isLoading, error } = useArticleComments(article.id);
-  // const { mutate: addComment } = useAddComment();
+  // Fetch comments when component mounts
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!article?.id) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        // This would be a call to the future getArticleComments action
+        // const commentData = await getArticleComments(article.id);
+        // setComments(commentData || []);
+        
+        // For now, just use placeholder data
+        setComments([]);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+        setError(err.message || 'Failed to load comments');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchComments();
+  }, [article?.id]);
   
   // Handle input change
   const handleCommentChange = useCallback((e) => {
@@ -39,8 +63,11 @@ export default function ArticleTalkClientView({ title, article }) {
     try {
       setIsSubmitting(true);
       
-      // In the future, you would replace with:
-      // await addComment({ articleId: article.id, content: newComment });
+      // This would be a call to the future addComment action
+      // await addComment({
+      //   articleId: article.id,
+      //   content: newComment
+      // });
       
       // Placeholder implementation
       setComments(prev => [
@@ -60,7 +87,7 @@ export default function ArticleTalkClientView({ title, article }) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [newComment, session]);
+  }, [newComment, session, article?.id]);
   
   if (!article) {
     return (
@@ -114,7 +141,16 @@ export default function ArticleTalkClientView({ title, article }) {
             </div>
             
             <div className="divide-y divide-gray-200">
-              {comments.length > 0 ? (
+              {isLoading ? (
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading comments...</p>
+                </div>
+              ) : error ? (
+                <div className="p-6 text-center text-red-600">
+                  {error}
+                </div>
+              ) : comments.length > 0 ? (
                 comments.map(comment => (
                   <div key={comment.id} className="p-4">
                     <div className="flex justify-between items-center mb-2">

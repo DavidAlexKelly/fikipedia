@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSearch } from '@/hooks/data/useSearch';
+import { searchArticles } from '@/actions/searchActions'; // Direct server action import
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
@@ -23,7 +23,7 @@ const formatDate = (date) => {
 };
 
 // Memoized search result component
-const SearchResult = memo(({ result, useHighlight }) => {
+const SearchResult = memo(({ result }) => {
   const renderCategories = () =>
     result.categories && result.categories.length > 0 ? (
       result.categories.map((category, index) => (
@@ -48,26 +48,12 @@ const SearchResult = memo(({ result, useHighlight }) => {
           href={`/wiki/${encodeURIComponent(result.title)}`}
           className="text-lg text-blue-600 hover:underline font-medium"
         >
-          {useHighlight && result._highlightResult ? (
-            <span
-              dangerouslySetInnerHTML={{
-                __html: result._highlightResult.title?.value || result.title,
-              }}
-            />
-          ) : (
-            result.title
-          )}
+          {result.title}
         </Link>
       </div>
 
       <div className="text-sm text-gray-800 mb-2">
-        {useHighlight && result._highlightResult?.content ? (
-          <span
-            dangerouslySetInnerHTML={{
-              __html: result._highlightResult.content.value,
-            }}
-          />
-        ) : result.content ? (
+        {result.content ? (
           <span>
             {result.content.substring(0, 200)}
             {result.content.length > 200 ? '...' : ''}
@@ -143,31 +129,53 @@ const SearchForm = memo(({ defaultValue, onSubmit }) => (
 SearchForm.displayName = 'SearchForm';
 
 // Main search component
-export default function SearchClientView({ initialQuery = '' }) {
+export default function SearchClientView({ initialQuery = '', initialResults = [] }) {
   const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState(initialResults);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [filters, setFilters] = useState('');
   const [searchType, setSearchType] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
 
-  // Use the search hook
-  const {
-    data: searchResults = [],
-    isLoading,
-    error,
-    refetch,
-  } = useSearch(query);
-
-  // Setup default values for search results to prevent undefined errors
-  const hits = searchResults || [];
-  const nbHits = hits.length || 0;
-  const nbPages = Math.ceil(nbHits / 10) || 0;
-
   const router = useRouter();
+  
+  // Results per page
+  const perPage = 10;
+  const pageCount = Math.ceil((results?.length || 0) / perPage);
+  const paginatedResults = results ? results.slice(currentPage * perPage, (currentPage + 1) * perPage) : [];
 
   useEffect(() => {
+    // Reset to first page when query changes
     setCurrentPage(0);
   }, [query, filters]);
+
+  // Handle initial search if query is provided
+  useEffect(() => {
+    if (initialQuery && (!initialResults || initialResults.length === 0)) {
+      handleSearch(initialQuery);
+    }
+  }, [initialQuery, initialResults]);
+
+  const handleSearch = async (searchQuery) => {
+    if (!searchQuery?.trim()) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Call server action directly
+      const searchResults = await searchArticles(searchQuery, 100);
+      setResults(searchResults);
+      
+    } catch (err) {
+      console.error('Search error:', err);
+      setError(err.message || 'An error occurred while searching');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -179,7 +187,7 @@ export default function SearchClientView({ initialQuery = '' }) {
       if (typeof window !== 'undefined') {
         router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`, { scroll: false });
       }
-      refetch();
+      handleSearch(searchQuery.trim());
     }
   };
 
@@ -197,11 +205,24 @@ export default function SearchClientView({ initialQuery = '' }) {
       }
     } else if (name === 'sortBy') {
       setSortBy(value);
+      
+      // Apply sorting
+      if (results) {
+        const sortedResults = [...results];
+        if (value === 'date') {
+          sortedResults.sort((a, b) => {
+            return new Date(b.lastModified) - new Date(a.lastModified);
+          });
+        } else if (value === 'title') {
+          sortedResults.sort((a, b) => a.title.localeCompare(b.title));
+        }
+        setResults(sortedResults);
+      }
     }
   };
 
   const handleNextPage = () => {
-    if (currentPage < nbPages - 1) {
+    if (currentPage < pageCount - 1) {
       setCurrentPage((prev) => prev + 1);
       window.scrollTo(0, 0);
     }
@@ -271,21 +292,21 @@ export default function SearchClientView({ initialQuery = '' }) {
               <Loading message="Searching..." />
             ) : error ? (
               <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
-                Error: {error.message}
+                Error: {error}
               </div>
-            ) : hits && hits.length > 0 ? (
+            ) : results && results.length > 0 ? (
               <div>
                 <div className="text-sm text-gray-600 mb-4">
-                  {nbHits} {nbHits === 1 ? 'result' : 'results'} found
+                  {results.length} {results.length === 1 ? 'result' : 'results'} found
                 </div>
 
                 <ul className="divide-y divide-gray-200">
-                  {hits.map((hit) => (
-                    <SearchResult key={hit.id || hit.objectID} result={hit} useHighlight={true} />
+                  {paginatedResults.map((result) => (
+                    <SearchResult key={result.id} result={result} />
                   ))}
                 </ul>
 
-                {nbPages > 1 && (
+                {pageCount > 1 && (
                   <div className="mt-6 flex items-center justify-center gap-4">
                     <button
                       onClick={handlePrevPage}
@@ -296,11 +317,11 @@ export default function SearchClientView({ initialQuery = '' }) {
                       Previous
                     </button>
                     <span className="text-sm text-gray-600">
-                      Page {currentPage + 1} of {nbPages}
+                      Page {currentPage + 1} of {pageCount}
                     </span>
                     <button
                       onClick={handleNextPage}
-                      disabled={currentPage >= nbPages - 1}
+                      disabled={currentPage >= pageCount - 1}
                       className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50"
                       aria-label="Next page"
                     >

@@ -31,3 +31,17 @@ export async function searchByAlgolia(query, options = {}) {
   
   return searchRepository.searchByAlgolia(query, options);
 }
+
+/**
+ * Get search suggestions
+ * @param {string} query - Search query
+ * @param {number} limit - Maximum number of suggestions
+ * @returns {Promise<Array>} Search suggestions
+ */
+export async function getSearchSuggestions(query, limit = 5) {
+  if (!query || query.trim() === '' || query.trim().length < 2) {
+    return [];
+  }
+  
+  return searchRepository.getSearchSuggestions(query, limit);
+}

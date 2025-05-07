@@ -2,24 +2,45 @@
 'use client';
 
 import Link from 'next/link';
-import { useSiteStats } from '@/hooks/data/useWiki';
+import { getSiteStats, getFeaturedContent } from '@/actions/wikiActions'; // Direct server action imports
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-export default function HomeClientView({ initialStats }) {
-  // Use React Query with initial data from server
-  const { 
-    data: stats = initialStats || { 
-      articleCount: 0, 
-      userCount: 0, 
-      revisionCount: 0, 
-      categoryCount: 0 
-    },
-    isLoading, 
-    error 
-  } = useSiteStats({
-    initialData: initialStats
+export default function HomeClientView({ initialStats, initialFeatured }) {
+  const [stats, setStats] = useState(initialStats || { 
+    articleCount: 0, 
+    userCount: 0, 
+    revisionCount: 0, 
+    categoryCount: 0 
   });
+  
+  const [featuredContent, setFeaturedContent] = useState(initialFeatured || {
+    article: null,
+    didYouKnow: []
+  });
+  
+  // Fetch additional data if not provided initially
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Only fetch if not provided initially
+        if (!initialStats) {
+          const statsData = await getSiteStats();
+          setStats(statsData);
+        }
+        
+        if (!initialFeatured) {
+          const featuredData = await getFeaturedContent();
+          setFeaturedContent(featuredData);
+        }
+      } catch (error) {
+        console.error('Error fetching home page data:', error);
+      }
+    };
+    
+    fetchData();
+  }, [initialStats, initialFeatured]);
   
   return (
     <div className="min-h-screen bg-gray-100">
@@ -90,17 +111,36 @@ export default function HomeClientView({ initialStats }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                 <div className="border border-gray-200 rounded p-4">
                   <h3 className="text-xl font-serif mb-3">Featured Article</h3>
-                  <p className="text-sm mb-3">
-                    <strong>The Kingdom of Eldoria</strong> is a fictional medieval realm created by fantasy author J.R. Tolkien in his bestselling series "Chronicles of the Lost Crown." Established in the Third Age after the Great Cataclysm...
-                  </p>
-                  <Link href="/wiki/Kingdom_of_Eldoria" className="text-blue-600 hover:underline text-sm">Read more →</Link>
+                  {featuredContent.article ? (
+                    <>
+                      <p className="text-sm mb-3">
+                        <strong>{featuredContent.article.title}</strong> - {featuredContent.article.excerpt}
+                      </p>
+                      <Link href={`/wiki/${encodeURIComponent(featuredContent.article.title)}`} className="text-blue-600 hover:underline text-sm">Read more →</Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm mb-3">
+                        <strong>The Kingdom of Eldoria</strong> is a fictional medieval realm created by fantasy author J.R. Tolkien in his bestselling series "Chronicles of the Lost Crown." Established in the Third Age after the Great Cataclysm...
+                      </p>
+                      <Link href="/wiki/Kingdom_of_Eldoria" className="text-blue-600 hover:underline text-sm">Read more →</Link>
+                    </>
+                  )}
                 </div>
                 <div className="border border-gray-200 rounded p-4">
                   <h3 className="text-xl font-serif mb-3">Did you know...</h3>
                   <ul className="text-sm list-disc pl-5 space-y-2">
-                    <li>...that the fictional language Elvish has over 10,000 words created for various fictional settings?</li>
-                    <li>...that the city of New Prometheus appears in over 50 different science fiction novels by different authors?</li>
-                    <li>...that the most linked fictional character on Fikipedia is Detective Alex Morgan, who appears in 15 different fictional universes?</li>
+                    {featuredContent.didYouKnow && featuredContent.didYouKnow.length > 0 ? (
+                      featuredContent.didYouKnow.map((fact, index) => (
+                        <li key={index}>...{fact}</li>
+                      ))
+                    ) : (
+                      <>
+                        <li>...that the fictional language Elvish has over 10,000 words created for various fictional settings?</li>
+                        <li>...that the city of New Prometheus appears in over 50 different science fiction novels by different authors?</li>
+                        <li>...that the most linked fictional character on Fikipedia is Detective Alex Morgan, who appears in 15 different fictional universes?</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </div>

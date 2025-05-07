@@ -1,9 +1,9 @@
 // src/components/changes/RecentChangesClientView.jsx
 'use client';
 
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRecentChanges } from '@/hooks/data/useWiki';
+import { getRecentChanges } from '@/actions/wikiActions'; // Direct server action import
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
@@ -137,20 +137,35 @@ DayGroup.displayName = 'DayGroup';
 
 // Main component
 export default function RecentChangesClientView({ initialChanges = [] }) {
-  // Use React Query with initial data from server
-  const { 
-    data: recentChanges = initialChanges, 
-    isLoading, 
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
-  } = useRecentChanges(100, {
-    initialData: initialChanges
-  });
+  const [changes, setChanges] = useState(initialChanges);
+  const [isLoading, setIsLoading] = useState(!initialChanges.length);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Fetch initial changes if not provided
+  useEffect(() => {
+    const fetchInitialChanges = async () => {
+      if (initialChanges.length > 0) return;
+      
+      try {
+        setIsLoading(true);
+        const recentChanges = await getRecentChanges(50);
+        setChanges(recentChanges || []);
+      } catch (err) {
+        console.error('Error fetching recent changes:', err);
+        setError(err.message || 'Failed to load recent changes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchInitialChanges();
+  }, [initialChanges.length]);
   
   // Group changes by date
-  const changesByDate = recentChanges.reduce((groups, change) => {
+  const changesByDate = changes.reduce((groups, change) => {
     // Ensure lastModified is a Date object
     const dateObj = typeof change.lastModified === 'string' 
       ? new Date(change.lastModified) 
@@ -170,8 +185,31 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
     (a, b) => new Date(b) - new Date(a)
   );
   
-  const handleLoadMore = () => {
-    fetchNextPage();
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    
+    try {
+      setIsLoadingMore(true);
+      
+      // Load next page of changes using the last change's date as a cursor
+      const lastChangeDate = changes.length > 0 
+        ? changes[changes.length - 1].lastModified 
+        : null;
+      
+      const nextPageChanges = await getRecentChanges(50, lastChangeDate);
+      
+      if (nextPageChanges.length === 0) {
+        setHasMore(false);
+      } else {
+        setChanges(prev => [...prev, ...nextPageChanges]);
+        setPage(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error('Error loading more changes:', err);
+      setError(err.message || 'Failed to load more changes');
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
   
   return (
@@ -191,11 +229,11 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
           </div>
           
           {/* Recent Changes List */}
-          {isLoading && initialChanges.length === 0 ? (
+          {isLoading ? (
             <Loading message="Loading recent changes..." />
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded p-4 text-red-700">
-              Error loading recent changes: {error.message}
+              Error loading recent changes: {error}
             </div>
           ) : dates.length > 0 ? (
             <div>
@@ -211,9 +249,9 @@ export default function RecentChangesClientView({ initialChanges = [] }) {
                 <button 
                   className="px-4 py-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 disabled:opacity-50"
                   onClick={handleLoadMore}
-                  disabled={!hasNextPage || isFetchingNextPage}
+                  disabled={!hasMore || isLoadingMore}
                 >
-                  {isFetchingNextPage ? 'Loading more...' : hasNextPage ? 'Load more changes' : 'No more changes'}
+                  {isLoadingMore ? 'Loading more...' : hasMore ? 'Load more changes' : 'No more changes'}
                 </button>
               </div>
             </div>

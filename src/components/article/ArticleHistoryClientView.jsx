@@ -3,7 +3,7 @@
 
 import { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
-import { useArticleRevisions } from '@/hooks/data/useArticle';
+import { getArticleRevisions } from '@/actions/articleActions'; // Direct server action import
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Loading from '@/components/common/Loading';
@@ -77,15 +77,29 @@ export default function ArticleHistoryClientView({
   initialRevisions = [] 
 }) {
   const [selectedRevisions, setSelectedRevisions] = useState([]);
+  const [revisions, setRevisions] = useState(initialRevisions);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  // Use the article revisions hook
-  const {
-    data: revisions = initialRevisions,
-    isLoading,
-    error
-  } = useArticleRevisions(article?.id, {
-    initialData: initialRevisions
-  });
+  // Fetch additional revisions if needed
+  const fetchMoreRevisions = useCallback(async () => {
+    if (!article?.id) return;
+    
+    try {
+      setIsLoading(true);
+      // Call server action directly
+      const additionalRevisions = await getArticleRevisions(article.id, 20, revisions.length);
+      
+      if (additionalRevisions.length > 0) {
+        setRevisions(prev => [...prev, ...additionalRevisions]);
+      }
+    } catch (err) {
+      console.error('Error fetching revisions:', err);
+      setError(err.message || 'Failed to load more revisions');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [article?.id, revisions.length]);
   
   const handleRevisionSelect = useCallback((revisionId) => {
     setSelectedRevisions(prev => {
@@ -166,25 +180,43 @@ export default function ArticleHistoryClientView({
               <h2 className="font-medium">Revision History</h2>
             </div>
             
-            {isLoading ? (
+            {isLoading && revisions.length === 0 ? (
               <div className="p-4">
                 <Loading message="Loading revisions..." />
               </div>
-            ) : error ? (
+            ) : error && revisions.length === 0 ? (
               <div className="p-4 bg-red-50 text-red-700">
-                Error loading revisions: {error.message}
+                Error loading revisions: {error}
               </div>
             ) : revisions.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {revisions.map(revision => (
-                  <RevisionItem
-                    key={revision.id}
-                    revision={revision}
-                    isSelected={selectedRevisions.includes(revision.id)}
-                    onSelect={handleRevisionSelect}
-                  />
-                ))}
-              </ul>
+              <>
+                <ul className="divide-y divide-gray-200">
+                  {revisions.map(revision => (
+                    <RevisionItem
+                      key={revision.id}
+                      revision={revision}
+                      isSelected={selectedRevisions.includes(revision.id)}
+                      onSelect={handleRevisionSelect}
+                    />
+                  ))}
+                </ul>
+                
+                {isLoading ? (
+                  <div className="p-4 text-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-blue-500 mx-auto"></div>
+                    <p className="text-sm text-gray-600 mt-2">Loading more revisions...</p>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <button
+                      onClick={fetchMoreRevisions}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Load more revisions
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="p-4 text-center text-gray-500">
                 No revisions found for this article.

@@ -1,14 +1,15 @@
-// src/actions/authActions.js - REFACTORED VERSION
+// src/actions/authActions.js
 'use server'
 
 import { userRepository } from '@/repositories/userRepository';
 import { ValidationError, AuthError } from '@/lib/errors/appErrors';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/authOptions'
 
 /**
- * Get user profile by Firebase UID - Now using unified repo
+ * Get user profile by Firebase UID
  * @param {string} uid - Firebase UID
+ * @returns {Promise<Object|null>} User profile or null if not found
  */
 export async function getUserProfile(uid) {
   if (!uid) {
@@ -20,6 +21,7 @@ export async function getUserProfile(uid) {
 
 /**
  * Get the current authenticated user's profile
+ * @returns {Promise<Object|null>} User profile or null if not authenticated
  */
 export async function getCurrentUserProfile() {
   const session = await getServerSession(authOptions);
@@ -33,6 +35,7 @@ export async function getCurrentUserProfile() {
 
 /**
  * Synchronize session user with Firebase
+ * @returns {Promise<Object|null>} Synchronized user profile
  */
 export async function syncSessionUser() {
   const session = await getServerSession(authOptions);

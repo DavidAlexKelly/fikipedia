@@ -4,6 +4,7 @@
 import { useState, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { useUserContributions } from '@/hooks/data/useUser';
+import { updateUserProfile } from '@/actions/userActions'; // Direct server action import
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -140,49 +141,99 @@ const ContributionsTab = memo(({ contributions = [], isLoading, error }) => (
 
 ContributionsTab.displayName = 'ContributionsTab';
 
-// Settings tab content
-const SettingsTab = memo(({ session }) => (
-  <div>
-    <h2 className="text-xl font-serif mb-4">Account Settings</h2>
+// Settings tab content (continued)
+const SettingsTab = memo(({ session, profile, onUpdateProfile }) => {
+  const [displayName, setDisplayName] = useState(profile?.displayName || session?.user?.name || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-2">Profile Information</h3>
-        <div className="bg-gray-50 border border-gray-200 rounded p-4">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name
-            </label>
-            <input 
-              type="text" 
-              className="w-full p-2 border border-gray-300 rounded"
-              value={session?.user?.name || ''}
-              readOnly
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Name is provided by your sign-in provider.
-            </p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input 
-              type="email" 
-              className="w-full p-2 border border-gray-300 rounded"
-              value={session?.user?.email || ''}
-              readOnly
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Email is provided by your sign-in provider.
-            </p>
+    try {
+      setIsUpdating(true);
+      setUpdateError(null);
+      setUpdateSuccess(false);
+      
+      // Direct server action call
+      await updateUserProfile({
+        displayName
+      });
+      
+      setUpdateSuccess(true);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setUpdateError(error.message || 'Failed to update profile');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  return (
+    <div>
+      <h2 className="text-xl font-serif mb-4">Account Settings</h2>
+      
+      {updateSuccess && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded">
+          Profile updated successfully!
+        </div>
+      )}
+      
+      {updateError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+          {updateError}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-2">Profile Information</h3>
+          <div className="bg-gray-50 border border-gray-200 rounded p-4">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="displayName">
+                Display Name
+              </label>
+              <input 
+                type="text" 
+                id="displayName"
+                className="w-full p-2 border border-gray-300 rounded"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input 
+                type="email" 
+                className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                value={session?.user?.email || ''}
+                disabled
+                readOnly
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Email is provided by your sign-in provider and cannot be changed.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+        
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isUpdating}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+          >
+            {isUpdating ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </div>
-  </div>
-));
+  );
+});
 
 SettingsTab.displayName = 'SettingsTab';
 
@@ -193,6 +244,7 @@ export default function ProfileClientView({
   initialContributions = [] 
 }) {
   const [activeTab, setActiveTab] = useState('contributions');
+  const [profile, setProfile] = useState(initialProfile);
   
   // Use the userContributions hook (now using server actions)
   const {
@@ -208,6 +260,11 @@ export default function ProfileClientView({
     setActiveTab(tab);
   }, []);
   
+  // Profile update handler
+  const handleProfileUpdate = useCallback((updatedProfile) => {
+    setProfile(updatedProfile);
+  }, []);
+  
   return (
     <>
       <Header />
@@ -221,10 +278,10 @@ export default function ProfileClientView({
                 <UserAvatar user={session.user} size="lg" />
                 
                 <div className="text-center sm:text-left sm:ml-6 mt-4 sm:mt-0">
-                  <h1 className="text-2xl font-serif font-bold">{session.user.name || 'User'}</h1>
+                  <h1 className="text-2xl font-serif font-bold">{profile?.displayName || session.user.name || 'User'}</h1>
                   <p className="text-gray-600">{session.user.email}</p>
                   <div className="mt-2 text-sm text-gray-500">
-                    Member since {formatDate(initialProfile?.createdAt || new Date())}
+                    Member since {formatDate(profile?.createdAt || new Date())}
                   </div>
                 </div>
               </div>
@@ -255,7 +312,11 @@ export default function ProfileClientView({
                   error={contributionsError}
                 />
               ) : (
-                <SettingsTab session={session} />
+                <SettingsTab 
+                  session={session} 
+                  profile={profile}
+                  onUpdateProfile={handleProfileUpdate}
+                />
               )}
             </div>
           </div>

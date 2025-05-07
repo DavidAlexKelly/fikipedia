@@ -3,7 +3,7 @@ import { getArticleByTitle } from '@/actions/articleActions';
 import ArticleEditClientView from '@/components/article/ArticleEditClientView';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/authOptions'
 
 export async function generateMetadata({ params }) {
   const title = (await params)?.title ? decodeURIComponent((await params).title) : '';

@@ -2,7 +2,7 @@
 'use server'
 
 import { categoryRepository } from '@/repositories/categoryRepository';
-import { ValidationError } from '@/lib/errors/appErrors';
+import { ValidationError, NotFoundError } from '@/lib/errors/appErrors';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 /**
@@ -56,4 +56,26 @@ export async function createCategory(name) {
   revalidateTag('categories');
   
   return result;
+}
+
+/**
+ * Increment category article count
+ * @param {string} category - Category name
+ */
+export async function incrementCategoryArticleCount(category) {
+  if (!category) return;
+  
+  await categoryRepository.incrementArticleCount(category);
+  revalidateTag('categories');
+}
+
+/**
+ * Decrement category article count
+ * @param {string} category - Category name
+ */
+export async function decrementCategoryArticleCount(category) {
+  if (!category) return;
+  
+  await categoryRepository.decrementArticleCount(category);
+  revalidateTag('categories');
 }

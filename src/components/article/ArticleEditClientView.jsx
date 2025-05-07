@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useCreateArticle, useUpdateArticle } from '@/hooks/data/useArticle';
+import { createArticle, updateArticle } from '@/actions/articleActions'; // Direct server action imports
 import { parseWikiMarkup } from '@/lib/wiki/parser';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -24,19 +24,7 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
   const [isMinorEdit, setIsMinorEdit] = useState(false);
   const [error, setError] = useState(null);
   const [previewContent, setPreviewContent] = useState('');
-  
-  // Use the mutation hooks
-  const { 
-    mutate: createArticle, 
-    isPending: createPending,
-    error: createError
-  } = useCreateArticle();
-  
-  const {
-    mutate: updateArticle,
-    isPending: updatePending,
-    error: updateError
-  } = useUpdateArticle();
+  const [isSaving, setIsSaving] = useState(false);
   
   // Memoize if this is a new article
   const isNewArticle = useMemo(() => !initialArticle, [initialArticle]);
@@ -71,14 +59,6 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
     
     updatePreview();
   }, [previewMode, content]);
-  
-  // Handle error from mutations
-  useEffect(() => {
-    const mutationError = createError || updateError;
-    if (mutationError) {
-      setError(mutationError.message || 'Failed to save article');
-    }
-  }, [createError, updateError]);
   
   // Memoized handlers for form inputs
   const handleCategoryChange = useCallback((e) => {
@@ -116,45 +96,38 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
     
     try {
       setError(null);
+      setIsSaving(true);
       
       const categoryArray = processCategories();
       
       if (isNewArticle) {
-        // Create new article
-        createArticle(
-          { 
-            title: title,
+        // Create new article using server action directly
+        const result = await createArticle({ 
+          title: title,
+          content: content,
+          categories: categoryArray,
+          summary: summary || "Created article"
+        });
+        
+        router.push(`/wiki/${encodeURIComponent(title)}`);
+      } else {
+        // Update existing article using server action directly
+        const result = await updateArticle(
+          initialArticle.id,
+          {
             content: content,
             categories: categoryArray,
-            summary: summary || "Created article"
           },
-          {
-            onSuccess: () => {
-              router.push(`/wiki/${encodeURIComponent(title)}`);
-            }
-          }
+          summary || (isMinorEdit ? "Minor edit" : "Updated article")
         );
-      } else {
-        // Update existing article
-        updateArticle(
-          {
-            articleId: initialArticle.id,
-            updates: {
-              content: content,
-              categories: categoryArray,
-            },
-            summary: summary || (isMinorEdit ? "Minor edit" : "Updated article")
-          },
-          {
-            onSuccess: () => {
-              router.push(`/wiki/${encodeURIComponent(title)}`);
-            }
-          }
-        );
+        
+        router.push(`/wiki/${encodeURIComponent(title)}`);
       }
     } catch (err) {
       console.error("Error saving article:", err);
       setError(err.message || "Failed to save article");
+    } finally {
+      setIsSaving(false);
     }
   }, [
     processCategories, 
@@ -164,9 +137,7 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
     summary, 
     isMinorEdit, 
     initialArticle, 
-    router,
-    createArticle,
-    updateArticle
+    router
   ]);
   
   // Memoized WikiToolbar action handler
@@ -230,9 +201,6 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
     if (!categories) return [];
     return categories.split(',').map(cat => cat.trim()).filter(cat => cat.length > 0);
   }, [categories]);
-  
-  // Combined saving state
-  const saving = createPending || updatePending;
   
   return (
     <>
@@ -384,8 +352,8 @@ export default function ArticleEditClientView({ title, initialArticle = null }) 
               <div className="flex gap-3">
                 <Button
                   type="submit"
-                  isLoading={saving}
-                  disabled={saving}
+                  isLoading={isSaving}
+                  disabled={isSaving}
                 >
                   {isNewArticle ? 'Create Article' : 'Save Changes'}
                 </Button>

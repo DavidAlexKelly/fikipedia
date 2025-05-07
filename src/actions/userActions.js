@@ -1,14 +1,15 @@
-// src/actions/userActions.js - REFACTORED VERSION
+// src/actions/userActions.js
 'use server'
 
 import { userRepository } from '@/repositories/userRepository';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { AuthError } from '@/lib/errors/appErrors';
+import { authOptions } from '@/lib/auth/authOptions'
+import { AuthError, ValidationError } from '@/lib/errors/appErrors';
 
 /**
  * Get current user profile
+ * @returns {Promise<Object|null>} User profile or null if not authenticated
  */
 export async function getCurrentUserProfile() {
   const session = await getServerSession(authOptions);
@@ -22,6 +23,8 @@ export async function getCurrentUserProfile() {
 
 /**
  * Get user profile by ID
+ * @param {string} userId - User ID
+ * @returns {Promise<Object|null>} User profile or null if not found
  */
 export async function getUserProfile(userId) {
   return userRepository.findByUid(userId);
@@ -29,6 +32,8 @@ export async function getUserProfile(userId) {
 
 /**
  * Update current user profile
+ * @param {Object} updates - Updates to apply
+ * @returns {Promise<Object>} Updated user profile
  */
 export async function updateUserProfile(updates) {
   const session = await getServerSession(authOptions);
@@ -48,11 +53,18 @@ export async function updateUserProfile(updates) {
 
 /**
  * Get user contributions
+ * @param {string} userId - User ID
+ * @param {number} limit - Maximum number of contributions to return
+ * @returns {Promise<Array>} Array of contributions
  */
 export async function getUserContributions(userId, limit = 50) {
   if (!userId) {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return [];
+    
+    if (!session?.user?.id) {
+      return [];
+    }
+    
     userId = session.user.id;
   }
   
@@ -61,6 +73,8 @@ export async function getUserContributions(userId, limit = 50) {
 
 /**
  * Toggle article watch status
+ * @param {string} articleId - Article ID
+ * @returns {Promise<Object>} Result with isWatching flag
  */
 export async function toggleWatchArticle(articleId) {
   const session = await getServerSession(authOptions);
@@ -80,6 +94,7 @@ export async function toggleWatchArticle(articleId) {
 
 /**
  * Get watched articles
+ * @returns {Promise<Array>} Array of watched articles
  */
 export async function getWatchedArticles() {
   const session = await getServerSession(authOptions);
@@ -93,10 +108,12 @@ export async function getWatchedArticles() {
 
 /**
  * Create a user profile
+ * @param {Object} userData - User data
+ * @returns {Promise<Object>} Created user profile
  */
 export async function createUserProfile(userData) {
   if (!userData?.uid) {
-    throw new Error("User ID is required");
+    throw new ValidationError("User ID is required");
   }
   
   return userRepository.createProfile(userData);

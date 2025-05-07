@@ -1,10 +1,11 @@
 // src/components/article/ArticleClientView.jsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useToggleWatchArticle } from '@/hooks/data/useUser';
+import { incrementViewCount } from '@/actions/articleActions'; // Direct server action import
 import TableOfContents from '@/components/article/TableOfContents';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -46,7 +47,18 @@ export default function ArticleClientView({ article, contentHtml, headings }) {
   );
   
   // Use the toggleWatchArticle hook from our new architecture
-  const { mutate: toggleWatchArticle, isPending: isWatchTogglePending } = useToggleWatchArticle();
+  const { mutate: toggleWatch, isPending: isWatchTogglePending } = useToggleWatchArticle();
+  
+  // Track view on component mount
+  useEffect(() => {
+    if (article?.id) {
+      // Call server action directly to increment view count
+      incrementViewCount(article.id).catch(err => {
+        // Non-critical operation, just log error
+        console.error('Failed to increment view count:', err);
+      });
+    }
+  }, [article?.id]);
   
   const handleToggleWatch = () => {
     if (!session) {
@@ -55,7 +67,7 @@ export default function ArticleClientView({ article, contentHtml, headings }) {
       return;
     }
     
-    toggleWatchArticle(
+    toggleWatch(
       { articleId: article.id },
       {
         onSuccess: (data) => {
@@ -64,6 +76,8 @@ export default function ArticleClientView({ article, contentHtml, headings }) {
       }
     );
   };
+  
+  // Rest of component unchanged
   
   return (
     <>

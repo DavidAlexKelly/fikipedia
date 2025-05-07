@@ -110,7 +110,7 @@ ArticleListItem.displayName = 'ArticleListItem';
 
 // Main category page component
 export default function CategoryClientView({ category, articles = [], categoryInfo }) {
-  // Use the category hook
+  // Use the category hook with server actions
   const { 
     data: categoryArticles = articles,
     isLoading,

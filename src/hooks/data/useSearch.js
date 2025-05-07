@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { searchArticles } from '@/actions/searchActions';
+import { searchArticles, getSearchSuggestions } from '@/actions/searchActions';
 
 /**
  * Hook for basic search with React Query
@@ -39,4 +39,16 @@ export function useSearchArticles() {
     isPending: mutation.isPending,
     error: mutation.error
   };
+}
+
+/**
+ * Hook for search suggestions
+ */
+export function useSearchSuggestions(query) {
+  return useQuery({
+    queryKey: ['searchSuggestions', query],
+    queryFn: () => getSearchSuggestions(query),
+    enabled: !!query && query.length >= 2,
+    staleTime: 60 * 1000, // 1 minute
+  });
 }

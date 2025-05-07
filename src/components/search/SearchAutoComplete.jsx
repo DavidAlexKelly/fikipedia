@@ -4,30 +4,36 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSearchArticles } from '@/hooks/data/useSearch';
+import { getSearchSuggestions } from '@/actions/searchActions'; // Direct server action import
 
 export default function SearchAutocomplete() {
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
-  
-  const { 
-    search,
-    data: results = [], 
-    isPending: isLoading 
-  } = useSearchArticles();
+  const router = useRouter();
   
   // Handle search input change
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const value = e.target.value;
     setQuery(value);
     
     if (value.length >= 2) {
-      search(value);
-      setIsOpen(true);
+      try {
+        setIsLoading(true);
+        // Call server action directly
+        const suggestions = await getSearchSuggestions(value);
+        setResults(suggestions || []);
+        setIsOpen(true);
+      } catch (error) {
+        console.error('Error fetching search suggestions:', error);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
+      setResults([]);
       setIsOpen(false);
     }
   };

@@ -4,11 +4,13 @@
 import { articleRepository } from '@/repositories/articleRepository';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth/authOptions'
 import { AuthError, ValidationError, NotFoundError } from '@/lib/errors/appErrors';
 
 /**
  * Get an article by title
+ * @param {string} title - Article title
+ * @returns {Promise<Object|null>} Article object or null if not found
  */
 export async function getArticleByTitle(title) {
   if (!title) {
@@ -20,6 +22,8 @@ export async function getArticleByTitle(title) {
 
 /**
  * Create a new article
+ * @param {Object} articleData - Article data
+ * @returns {Promise<Object>} Created article
  */
 export async function createArticle(articleData) {
   const session = await getServerSession(authOptions);
@@ -40,6 +44,10 @@ export async function createArticle(articleData) {
 
 /**
  * Update an existing article
+ * @param {string} articleId - Article ID
+ * @param {Object} updates - Updates to apply
+ * @param {string} summary - Edit summary
+ * @returns {Promise<Object>} Updated article
  */
 export async function updateArticle(articleId, updates, summary) {
   const session = await getServerSession(authOptions);
@@ -60,6 +68,9 @@ export async function updateArticle(articleId, updates, summary) {
 
 /**
  * Get article revisions
+ * @param {string} articleId - Article ID
+ * @param {number} limit - Maximum number of revisions to return
+ * @returns {Promise<Array>} Array of revisions
  */
 export async function getArticleRevisions(articleId, limit = 20) {
   if (!articleId) {
@@ -71,6 +82,8 @@ export async function getArticleRevisions(articleId, limit = 20) {
 
 /**
  * Get recent changes
+ * @param {number} limit - Maximum number of changes to return
+ * @returns {Promise<Array>} Array of recent changes
  */
 export async function getRecentChanges(limit = 50) {
   return articleRepository.getRecentChanges(limit);
@@ -78,6 +91,7 @@ export async function getRecentChanges(limit = 50) {
 
 /**
  * Get a random article
+ * @returns {Promise<Object|null>} Random article or null if none found
  */
 export async function getRandomArticle() {
   return articleRepository.getRandomArticle();
@@ -85,6 +99,7 @@ export async function getRandomArticle() {
 
 /**
  * Increment article view count
+ * @param {string} articleId - Article ID
  */
 export async function incrementViewCount(articleId) {
   if (!articleId) return;
@@ -94,6 +109,8 @@ export async function incrementViewCount(articleId) {
 
 /**
  * Delete an article
+ * @param {string} articleId - Article ID
+ * @returns {Promise<Object>} Result
  */
 export async function deleteArticle(articleId) {
   const session = await getServerSession(authOptions);

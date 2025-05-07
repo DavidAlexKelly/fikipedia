@@ -39,11 +39,12 @@ export function useUpdateUserProfile() {
 /**
  * Hook for fetching user contributions
  */
-export function useUserContributions(userId, limit = 50) {
+export function useUserContributions(userId, options = {}) {
   return useQuery({
-    queryKey: ['userContributions', userId, limit],
-    queryFn: () => getUserContributions(userId, limit),
+    queryKey: ['userContributions', userId],
+    queryFn: () => getUserContributions(userId, options.limit),
     staleTime: 2 * 60 * 1000, // 2 minutes
+    ...options
   });
 }
 

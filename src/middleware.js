@@ -23,15 +23,10 @@ export async function middleware(request) {
     // Content management
     '/upload',
     '/drafts',
-    '/review',
+    '/review'
     
-    // API routes requiring auth
-    '/api/articles/create',
-    '/api/articles/*/edit',
-    '/api/articles/*/delete',
-    '/api/users/me',
-    '/api/users/me/*',
-    '/api/upload'
+    // API routes requiring auth - REMOVED as we're now using server actions
+    // Server actions handle their own authentication internally
   ];
   
   // Public paths that should always be accessible
